@@ -61,3 +61,10 @@ await token.commitLiquidity(ethers.utils.parseEther("5"))
 ## License
 
 MIT
+## Hackathon Track
+
+Track: DeFi
+
+ProofBurn introduces a verifiable burn-based liquidity commitment model
+for USC that can serve as a primitive for DeFi reputation scoring,
+collateral signaling, and cross-chain liquidity proofs.

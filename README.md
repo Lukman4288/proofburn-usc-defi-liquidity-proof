@@ -18,6 +18,26 @@ This mechanism provides:
 Network: Sepolia Testnet  
 Contract Address: 0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab  
 
+Etherscan:
+https://sepolia.etherscan.io/address/0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab
+
+## How To Interact
+
+Open Hardhat console:
+
+npx hardhat console --network sepolia
+
+Load contract:
+
+const token = await ethers.getContractAt(
+  "ProofBurnToken",
+  "0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab"
+)
+
+Commit liquidity:
+
+await token.commitLiquidity(ethers.utils.parseEther("5"))
+
 ## Features
 
 - Burn-based liquidity proof

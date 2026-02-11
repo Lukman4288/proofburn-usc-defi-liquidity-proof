@@ -64,3 +64,4 @@ lerna-debug.log*
 .docusaurus/
 .serverless/
 .firebase/
+.env

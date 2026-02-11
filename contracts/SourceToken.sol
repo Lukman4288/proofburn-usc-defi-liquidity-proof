@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract ProofBurnToken is ERC20 {
 
-    address public constant BURN_ADDRESS = address(0x000000000000000000000000000000000000dEaD);
-
     event LiquidityCommitted(
         address indexed user,
         uint256 amount,
@@ -19,8 +17,9 @@ contract ProofBurnToken is ERC20 {
 
     function commitLiquidity(uint256 amount) external {
         require(amount > 0, "Amount must be greater than zero");
+        require(balanceOf(msg.sender) >= amount, "Not enough balance");
 
-        _transfer(msg.sender, BURN_ADDRESS, amount);
+        _burn(msg.sender, amount);
 
         emit LiquidityCommitted(
             msg.sender,

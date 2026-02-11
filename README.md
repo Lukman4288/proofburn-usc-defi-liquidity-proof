@@ -1,70 +1,261 @@
-# ProofBurn – USC DeFi Liquidity Proof
+ProofBurn – On-Chain Liquidity Commitment Primitive
 
-A minimal cross-chain liquidity commitment primitive for USC on Creditcoin.
+A minimal, transparent, and verifiable liquidity commitment mechanism built for scalable DeFi ecosystems.
 
-## Overview
+Live Demo:
+https://proofburn-usc-defi-liquidity-proof.vercel.app
 
-ProofBurn is a lightweight smart contract that enables liquidity commitment through irreversible burn mechanics. 
+GitHub:
+https://github.com/Lukman4288/proofburn-usc-defi-liquidity-proof
 
-This mechanism provides:
+Testnet Deployment: Sepolia
 
-- On-chain liquidity signaling
-- Transparent commitment proof
-- Verifiable burn records
-- Foundation for DeFi primitives on Creditcoin
+🧠 The Problem
 
-## Deployed Contract
+Liquidity claims in DeFi are often opaque.
 
-Network: Sepolia Testnet  
-Contract Address: 0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab  
+Projects claim:
 
-Etherscan:
-https://sepolia.etherscan.io/address/0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab
+Locked liquidity
 
-## How To Interact
+Committed supply
 
-Open Hardhat console:
+Deflationary mechanics
 
-npx hardhat console --network sepolia
+Burn-based tokenomics
 
-Load contract:
+But users must trust dashboards, announcements, or centralized reports.
 
-const token = await ethers.getContractAt(
-  "ProofBurnToken",
-  "0x19Ca540066D5ea9dF6953f55ceBeA3676dB378Ab"
-)
+There is no simple, standardized, and transparent primitive that:
 
-Commit liquidity:
+Verifies liquidity commitment
 
-await token.commitLiquidity(ethers.utils.parseEther("5"))
+Reduces circulating supply provably
 
-## Features
+Emits verifiable on-chain proof
 
-- Burn-based liquidity proof
-- Public verifiable events
-- Minimal gas footprint
-- EVM compatible
+Is composable with other DeFi systems
 
-## Tech Stack
+We built a minimal primitive to solve that.
 
-- Solidity ^0.8.20
-- Hardhat
-- Ethers.js
-- Sepolia Testnet deployment
+🚀 The Solution
 
-## Future Extensions
+ProofBurn introduces a Liquidity Commitment Mechanism that:
 
-- Cross-chain proof relay to Creditcoin
-- Liquidity score calculation
-- Integration with USC DeFi pools
+Allows token holders to commit liquidity by burning tokens.
 
-## License
+Permanently reduces total supply on-chain.
+
+Emits structured on-chain events.
+
+Enables real-time supply tracking.
+
+Provides public verifiability of deflation.
+
+This transforms liquidity commitment into a transparent and measurable on-chain action.
+
+⚙️ How It Works
+Smart Contract (ERC20-based)
+
+Initial Supply: 1,000,000 PBT
+
+Burn via commitLiquidity(uint256 amount)
+
+Uses OpenZeppelin ERC20
+
+Emits:
+
+event LiquidityCommitted(
+    address indexed user,
+    uint256 amount,
+    uint256 newTotalSupply,
+    uint256 timestamp
+);
+
+
+Each burn:
+
+Decreases totalSupply
+
+Emits new total supply
+
+Provides timestamped proof
+
+No admin mint.
+No hidden supply.
+Fully on-chain verifiable.
+
+🖥️ Frontend Dashboard
+
+Built with:
+
+React (Vite)
+
+Ethers.js v6
+
+Realtime event listeners
+
+Deployed on Vercel
+
+Dashboard shows:
+
+Connected wallet
+
+Current balance
+
+Current total supply
+
+Total burned
+
+Burn percentage
+
+Realtime burn history
+
+Users can:
+
+Connect wallet
+
+Commit liquidity (burn tokens)
+
+Instantly see supply reduction
+
+View on-chain proof
+
+🏗️ Architecture
+User Wallet
+    ↓
+Frontend (React + Ethers)
+    ↓
+ProofBurn Smart Contract
+    ↓
+On-Chain Event Emission
+    ↓
+Realtime UI Update
+
+
+Everything is:
+
+Stateless
+
+Transparent
+
+Verifiable
+
+Composable
+
+🔍 Why This Matters for Creditcoin
+
+Creditcoin focuses on trust, settlement, and verifiable value coordination.
+
+ProofBurn aligns with this by:
+
+Making liquidity commitment provable
+
+Enabling deflationary primitives
+
+Creating supply integrity layers
+
+Serving as a foundation for DeFi coordination
+
+This primitive can evolve into:
+
+Cross-chain liquidity proof system
+
+Collateral integrity module
+
+DAO-governed burn vault
+
+RWA-backed supply reduction tool
+
+Treasury transparency engine
+
+It is intentionally minimal — designed to be composable inside larger Creditcoin DeFi systems.
+
+📦 Deployed Contracts
+
+Network: Sepolia
+Contract Address:
+
+0x4E3bc91B437cd59eeB3774e6A53BaF9b0e9704f1
+
+
+Explorer:
+https://sepolia.etherscan.io/address/0x4E3bc91B437cd59eeB3774e6A53BaF9b0e9704f1
+
+🛣️ Roadmap
+
+Phase 1 – Hackathon MVP
+✔ Deflationary token
+✔ Burn-based liquidity commitment
+✔ Realtime dashboard
+✔ Public testnet deployment
+
+Phase 2 – Creditcoin Integration
+
+Deploy on Creditcoin testnet
+
+Cross-chain proof layer
+
+Burn registry indexer
+
+On-chain analytics module
+
+Phase 3 – DeFi Expansion
+
+DAO governance
+
+Treasury-controlled burn vault
+
+Liquidity staking integration
+
+Collateralized burn mechanics
+
+🎥 Demo
+
+Demo Video:
+(Insert your video link here)
+
+The demo shows:
+
+Wallet connection
+
+Burning tokens
+
+Total supply reduction
+
+Realtime event update
+
+🧩 Tech Stack
+
+Solidity ^0.8.x
+
+OpenZeppelin ERC20
+
+Hardhat
+
+React (Vite)
+
+Ethers.js v6
+
+Vercel (deployment)
+
+🔐 Security
+
+No mint after deployment
+
+Burn reduces supply permanently
+
+Uses battle-tested OpenZeppelin contracts
+
+Minimal surface area
+
+Transparent event-based accounting
+
+👤 Author
+
+Built during the CTC Hackathon period.
+Original work.
+
+📜 License
 
 MIT
-## Hackathon Track
-
-Track: DeFi
-
-ProofBurn introduces a verifiable burn-based liquidity commitment model
-for USC that can serve as a primitive for DeFi reputation scoring,
-collateral signaling, and cross-chain liquidity proofs.

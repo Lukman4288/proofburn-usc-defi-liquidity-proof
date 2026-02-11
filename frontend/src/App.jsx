@@ -1,23 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ethers } from "ethers";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid
-} from "recharts";
+import "./App.css";
 
-const CONTRACT_ADDRESS = "0x4E3bc91B437cd59eeB3774e6A53BaF9b0e9704f1";
+const CONTRACT_ADDRESS = import.meta.env.VITE_CONTRACT_ADDRESS;
 
 const ABI = [
   "function commitLiquidity(uint256 amount) external",
   "function balanceOf(address owner) view returns (uint256)",
   "function totalSupply() view returns (uint256)",
-  "event LiquidityCommitted(address indexed user,uint256 amount,uint256 timestamp)"
+  "event LiquidityCommitted(address indexed user,uint256 amount,uint256 newTotalSupply,uint256 timestamp)"
 ];
+
+const INITIAL_SUPPLY = 1000000;
 
 export default function App() {
   const [account, setAccount] = useState(null);
@@ -26,199 +20,156 @@ export default function App() {
   const [totalSupply, setTotalSupply] = useState("0");
   const [totalBurned, setTotalBurned] = useState("0");
   const [burnPercent, setBurnPercent] = useState("0");
-  const [loading, setLoading] = useState(false);
-  const [lastTx, setLastTx] = useState(null);
   const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const provider =
-    typeof window !== "undefined"
-      ? new ethers.BrowserProvider(window.ethereum)
-      : null;
+  const providerRef = useRef(null);
+  const contractRef = useRef(null);
+
+  // Initialize provider once
+  useEffect(() => {
+    if (window.ethereum) {
+      providerRef.current = new ethers.BrowserProvider(window.ethereum);
+    }
+  }, []);
 
   const connectWallet = async () => {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0xaa36a7" }]
-    });
+    if (!window.ethereum) {
+      alert("Install MetaMask first");
+      return;
+    }
 
-    const accounts = await provider.send("eth_requestAccounts", []);
-    setAccount(accounts[0]);
-    loadStats(accounts[0]);
-    listenBurnEvent(accounts[0]);
-  };
-
-  const loadStats = async (userAddress) => {
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
-      ABI,
-      signer
-    );
-
-    const userBal = await contract.balanceOf(userAddress);
-    const supply = await contract.totalSupply();
-
-    const formattedBal = ethers.formatEther(userBal);
-    const formattedSupply = ethers.formatEther(supply);
-
-    const initialSupply = 1000000;
-    const burned = initialSupply - parseFloat(formattedSupply);
-    const percent = ((burned / initialSupply) * 100).toFixed(4);
-
-    setBalance(parseFloat(formattedBal).toFixed(4));
-    setTotalSupply(parseFloat(formattedSupply).toFixed(4));
-    setTotalBurned(burned.toFixed(4));
-    setBurnPercent(percent);
-
-    setHistory(prev => [
-      ...prev,
-      {
-        time: new Date().toLocaleTimeString(),
-        supply: parseFloat(formattedSupply)
-      }
-    ]);
-  };
-
-  const commit = async () => {
     try {
-      setLoading(true);
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: "0xaa36a7" }] // Sepolia
+      });
 
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(
+      const accounts = await providerRef.current.send(
+        "eth_requestAccounts",
+        []
+      );
+
+      const signer = await providerRef.current.getSigner();
+      contractRef.current = new ethers.Contract(
         CONTRACT_ADDRESS,
         ABI,
         signer
       );
 
-      const tx = await contract.commitLiquidity(
+      setAccount(accounts[0]);
+
+      await loadStats(accounts[0]);
+      listenEvents();
+    } catch (err) {
+      alert(err.reason || err.message);
+    }
+  };
+
+  const loadStats = async (user) => {
+    try {
+      const contract = contractRef.current;
+
+      const bal = await contract.balanceOf(user);
+      const supply = await contract.totalSupply();
+
+      const formattedBal = parseFloat(ethers.formatEther(bal));
+      const formattedSupply = parseFloat(ethers.formatEther(supply));
+      const burned = INITIAL_SUPPLY - formattedSupply;
+
+      setBalance(formattedBal.toFixed(2));
+      setTotalSupply(formattedSupply.toFixed(2));
+      setTotalBurned(burned.toFixed(2));
+      setBurnPercent(((burned / INITIAL_SUPPLY) * 100).toFixed(4));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const burn = async () => {
+    try {
+      setLoading(true);
+
+      const tx = await contractRef.current.commitLiquidity(
         ethers.parseEther(amount)
       );
 
       await tx.wait();
 
-      setLastTx(tx.hash);
-      alert("🔥 Burn Success!");
-      loadStats(account);
+      await loadStats(account);
     } catch (err) {
-      console.log(err);
-      alert("Transaction gagal ❌");
+      alert(err.reason || err.message);
     }
 
     setLoading(false);
   };
 
-  const listenBurnEvent = async (userAddress) => {
-    const signer = await provider.getSigner();
-    const contract = new ethers.Contract(
-      CONTRACT_ADDRESS,
-      ABI,
-      signer
-    );
+  const listenEvents = () => {
+    const contract = contractRef.current;
 
-    contract.on("LiquidityCommitted", async () => {
-      console.log("🔥 Burn detected realtime");
-      loadStats(userAddress);
-    });
+    contract.removeAllListeners("LiquidityCommitted");
+
+    contract.on(
+      "LiquidityCommitted",
+      (user, amt, newSupply, timestamp) => {
+        const formatted = {
+          amount: parseFloat(ethers.formatEther(amt)),
+          supply: parseFloat(ethers.formatEther(newSupply)),
+          timestamp: new Date(
+            Number(timestamp) * 1000
+          ).toLocaleTimeString()
+        };
+
+        setHistory((prev) => [formatted, ...prev.slice(0, 19)]);
+      }
+    );
   };
 
-  useEffect(() => {
-    if (!window.ethereum) return;
-  }, []);
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#0d0d0d",
-        color: "white",
-        padding: "40px",
-        fontFamily: "sans-serif"
-      }}
-    >
-      <h1 style={{ color: "#ff8800" }}>🔥 ProofBurn Dashboard</h1>
+    <div className="container">
+      <h1>🔥 ProofBurn Dashboard</h1>
 
-      {!account ? (
+      {!account && (
         <button onClick={connectWallet}>Connect Wallet</button>
-      ) : (
-        <p>Connected: {account}</p>
       )}
 
-      <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
-        <Card title="Your Balance" value={`${balance} PBT`} />
-        <Card title="Total Supply" value={`${totalSupply} PBT`} />
-        <Card title="Total Burned" value={`${totalBurned} PBT`} />
-        <Card title="Burn %" value={`${burnPercent}%`} />
-      </div>
+      {account && (
+        <>
+          <p>
+            Connected: {account.slice(0, 6)}...
+            {account.slice(-4)}
+          </p>
 
-      <div style={{ marginTop: 30 }}>
-        <input
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-          style={{ padding: 10 }}
-        />
-        <button
-          onClick={commit}
-          disabled={loading}
-          style={{
-            padding: 10,
-            background: "#ff8800",
-            color: "white",
-            marginLeft: 10
-          }}
-        >
-          {loading ? "Processing..." : "Burn"}
-        </button>
-      </div>
+          <div className="cards">
+            <div className="card">Balance: {balance} PBT</div>
+            <div className="card">Supply: {totalSupply} PBT</div>
+            <div className="card">Burned: {totalBurned} PBT</div>
+            <div className="card">Burn %: {burnPercent}%</div>
+          </div>
 
-      {lastTx && (
-        <p style={{ marginTop: 20 }}>
-          Last Tx:{" "}
-          <a
-            href={`https://sepolia.etherscan.io/tx/${lastTx}`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View on Etherscan
-          </a>
-        </p>
-      )}
-
-      <div style={{ marginTop: 50 }}>
-        <h2>🔥 Burn History</h2>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={history}>
-            <CartesianGrid stroke="#333" />
-            <XAxis dataKey="time" stroke="#aaa" />
-            <YAxis stroke="#aaa" />
-            <Tooltip />
-            <Line
-              type="monotone"
-              dataKey="supply"
-              stroke="#ff8800"
-              strokeWidth={3}
-              dot={{ r: 4 }}
+          <div className="burn-box">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
             />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
+            <button onClick={burn} disabled={loading}>
+              {loading ? "Processing..." : "Burn"}
+            </button>
+          </div>
 
-function Card({ title, value }) {
-  return (
-    <div
-      style={{
-        background: "#1a1a1a",
-        padding: 20,
-        borderRadius: 12,
-        width: 220,
-        boxShadow: "0 0 20px rgba(255,136,0,0.3)"
-      }}
-    >
-      <h3>{title}</h3>
-      <h2 style={{ color: "#ff8800" }}>{value}</h2>
+          <h3>🔥 Burn History</h3>
+          <ul>
+            {history.map((item, i) => (
+              <li key={i}>
+                {item.timestamp} — Burn {item.amount} PBT → Supply {item.supply}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }
